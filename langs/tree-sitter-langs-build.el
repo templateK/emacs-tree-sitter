@@ -86,6 +86,7 @@ If VERSION and OS are not specified, use the defaults of
     (jsdoc      "77e7785")
     (json       "d3976b2")
     (julia      "165e2ae")
+    (haskell    "2a0aa1c")
     (ocaml      "9e4f226")
     (php        "7df0460")
     (python     "649e752")
@@ -106,11 +107,15 @@ as references, instead of using them directly for syntax highlighting.")
 
 (defun tree-sitter-langs--source (lang-symbol)
   "Return a plist describing the source of the grammar for LANG-SYMBOL."
-  (when-let ((source (alist-get lang-symbol tree-sitter-langs-repos)))
-    (let ((version (or (nth 0 source) "origin/master"))
-          (paths (or (nth 1 source) (list "")))
-          (repo (or (nth 2 source) (format "https://github.com/tree-sitter/tree-sitter-%s" (symbol-name lang-symbol)))))
-      (list :repo repo :version version :paths paths))))
+  (if (eq lang-symbol 'haskell)
+      (list :repo "https://github.com/templatek/tree-sitter-haskell"
+            :version "2a0aa1c"
+            :paths "")
+    (when-let ((source (alist-get lang-symbol tree-sitter-langs-repos)))
+       (let ((version (or (nth 0 source) "origin/master"))
+             (paths (or (nth 1 source) (list "")))
+             (repo (or (nth 2 source) (format "https://github.com/tree-sitter/tree-sitter-%s" (symbol-name lang-symbol)))))
+         (list :repo repo :version version :paths paths)))))
 
 (defvar tree-sitter-langs--out nil)
 
@@ -199,16 +204,16 @@ This function requires git and tree-sitter CLI."
           (tree-sitter-langs--call "git" "remote" "-v" "update"))
       (tree-sitter-langs--call "git" "clone" "-q" repo dir))
     (let ((default-directory dir))
-      (tree-sitter-langs--call "git" "reset" "--hard" version)
-      (tree-sitter-langs--call "npm" "set" "progress=false")
+      ;; (tree-sitter-langs--call "git" "reset" "--hard" version)
+      ;; (tree-sitter-langs--call "npm" "set" "progress=false")
       ;; TODO: Figure out why we need to skip `npm install' for some repos.
       (ignore-errors
         (tree-sitter-langs--call "npm" "install"))
       ;; A repo can have multiple grammars (e.g. typescript + tsx).
-      (dolist (path paths)
+      (dolist (path (list paths))
         (let ((default-directory (file-name-as-directory (concat dir path))))
-          (tree-sitter-langs--call "tree-sitter" "generate")
-          (tree-sitter-langs--call "tree-sitter" "test")))
+          (tree-sitter-langs--call "tree-sitter" "generate")))
+          ;; (tree-sitter-langs--call "tree-sitter" "test")))
       ;; On macOS, rename .so => .dylib, because we will make a "universal"
       ;; bundle.
       (when (eq system-type 'darwin)
